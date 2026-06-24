@@ -1,0 +1,21 @@
+.superpowers/
+# Go
+/services/gateway/bin/
+/services/migrator/bin/
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+# Node
+node_modules/
+dist/
+*.log
+# misc
+.DS_Store
+.env
+services/worker/.venv
+services/worker/worker.egg-info/
+/services/gateway/gateway
+/services/migrator/migrator
+*.tsbuildinfo

@@ -1,0 +1,16 @@
+{
+  "rabbitmq": {
+    "workQueue": "process",
+    "workQueueDurable": true,
+    "eventsExchange": "events",
+    "eventsExchangeType": "fanout"
+  },
+  "buckets": { "originals": "originals", "processed": "processed" },
+  "redis": { "jobKeyPrefix": "job:", "jobTtlSeconds": 3600 },
+  "messages": {
+    "job": ["jobId", "originalKey", "createdAt"],
+    "event": ["jobId", "status", "resultKeys", "error"]
+  },
+  "jobStatus": ["pending", "processing", "done", "failed"],
+  "variants": ["thumbnail", "processed"]
+}
