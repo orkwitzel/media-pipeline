@@ -37,6 +37,7 @@ environment variables and documents exactly what it needs.
 | `worker`   | Python          | Consume the work queue, fetch original from MinIO, process with Pillow (resize/thumbnail/watermark), store results to MinIO, UPDATE Postgres, SET Redis cache, publish "done" event. | Pillow is the natural fit for image processing. |
 | `notifier` | Node/TypeScript | Subscribe to "done" events, push live updates to browsers over WebSocket (with SSE fallback). | First-class WebSocket ecosystem. |
 | `web`      | React/Vite → nginx | Upload UI + live job gallery; static assets served by nginx. | Standard SPA; nginx static serving teaches Ingress routing. |
+| `migrator` | Go              | One-shot, run-to-completion image that applies ordered SQL migrations to Postgres and exits 0. Idempotent and re-runnable. Ships migration SQL files. | Run as a k8s **Job** / **initContainer** — the explicit "init service" learning goal. Go matches `gateway` for a shared toolchain. |
 
 ### Backing services (deployed by the user, not in this repo)
 
@@ -147,6 +148,7 @@ media-pipeline/
   libs/
     contracts/                # shared constants (queue/bucket/key names) where practical
   services/
+    migrator/   # Go      + Dockerfile + ordered SQL migrations + README + AGENTS.md
     gateway/    # Go      + Dockerfile + tests + README + AGENTS.md
     worker/     # Python  + Dockerfile + tests + README + AGENTS.md
     notifier/   # Node/TS + Dockerfile + tests + README + AGENTS.md
@@ -160,11 +162,14 @@ externally-exposed Services · Ingress with path routing and WebSocket support (
 ConfigMaps + Secrets · liveness/readiness probes on every workload · HorizontalPodAutoscaler
 (CPU) and/or KEDA on RabbitMQ queue depth (worker) · resource requests/limits · graceful
 shutdown (`terminationGracePeriod`, `preStop`) · optional NetworkPolicies (lock MinIO/Postgres
-to internal traffic) · optional init-container/Job for DB migration + bucket creation.
+to internal traffic) · **Jobs / initContainers** for the `migrator` (run-to-completion DB
+migration before app pods start) and optional bucket creation.
 
 ## Open risks / decisions deferred to implementation
 
-- Whether `gateway` runs the Postgres migration on startup or expects a separate init step —
-  default: idempotent auto-migrate on startup, overridable by env flag.
+- Schema ownership: migrations live in the dedicated `migrator` component and are applied as a
+  run-to-completion Job / initContainer before app services start. App services do **not**
+  self-migrate; they assume the schema exists and fail readiness if it doesn't. The `jobs`
+  table schema is owned by `migrator` and referenced (not duplicated) by other services.
 - WebSocket vs SSE in `notifier` — default to WebSocket with documented SSE fallback.
 - Exact image transforms/sizes — sensible defaults, configurable via env.
