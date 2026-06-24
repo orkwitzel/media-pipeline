@@ -1,5 +1,6 @@
 export type Job = {
   id: string; status: string;
+  originalKey: string | null;
   thumbnailKey: string | null; processedKey: string | null; error: string | null;
   createdAt: string; updatedAt: string;
 };

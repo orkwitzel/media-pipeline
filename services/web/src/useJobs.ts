@@ -27,6 +27,7 @@ export function useJobs(): Job[] {
             const updated: Job = {
               id: event.jobId,
               status: event.status,
+              originalKey: idx >= 0 ? prev[idx].originalKey : null,
               thumbnailKey: event.resultKeys?.thumbnail ?? null,
               processedKey: event.resultKeys?.processed ?? null,
               error: event.error,
