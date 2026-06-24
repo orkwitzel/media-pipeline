@@ -15,6 +15,10 @@ export function useJobs(): Job[] {
     function connect() {
       ws = new WebSocket(wsUrl);
 
+      ws.onopen = () => {
+        listJobs().then(setJobs).catch(console.error);
+      };
+
       ws.onmessage = (evt) => {
         try {
           const event = JSON.parse(evt.data) as { jobId: string; status: string; resultKeys: { thumbnail: string; processed: string } | null; error: string | null };
