@@ -32,8 +32,13 @@ Competing-consumer image processor for the media-pipeline. Reads jobs from the `
 ## Build and run
 
 ```bash
-# Build image
+# Build image (default — full TLS verification)
 docker build -t media-pipeline/worker .
+
+# Build behind a TLS-intercepting proxy (opt-in only, trusted networks)
+# PIP_TRUSTED_HOST=1 disables cert verification for pypi.org and files.pythonhosted.org.
+# Use ONLY on networks you control (e.g. corporate proxy, Rancher Desktop).
+docker build --build-arg PIP_TRUSTED_HOST=1 -t media-pipeline/worker .
 
 # Run (with required env vars)
 docker run --rm \
