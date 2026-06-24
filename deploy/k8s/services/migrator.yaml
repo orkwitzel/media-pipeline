@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrator
+  namespace: media-pipeline
+  labels:
+    app: migrator
+spec:
+  backoffLimit: 4
+  template:
+    metadata:
+      labels:
+        app: migrator
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrator
+          image: media-pipeline/migrator
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: database-secrets
+                  key: url
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:16-alpine
+          command:
+            - sh
+            - -c
+            - 'until pg_isready -h postgres -p 5432 -U app; do echo "waiting for postgres..."; sleep 2; done'

@@ -1,0 +1,55 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: media-pipeline-ingress
+  namespace: media-pipeline
+  annotations:
+    cert-manager.io/cluster-issuer: selfsigned-issuer
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: media-pipeline.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 8080
+          - path: /api(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: gateway
+                port:
+                  number: 8080
+          - path: /ws
+            pathType: Prefix
+            backend:
+              service:
+                name: notifier
+                port:
+                  number: 8082
+  tls:
+    - hosts: ["media-pipeline.local"]
+      secretName: media-pipeline-ingress-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: media-pipeline-ingress-class
+  namespace: media-pipeline
+spec:
+  controller: kubernetes.io/ingress-nginx
+
+
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned-issuer
+  namespace: media-pipeline
+spec:
+  selfSigned: {}

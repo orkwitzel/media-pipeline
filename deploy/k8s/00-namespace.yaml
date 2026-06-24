@@ -1,0 +1,7 @@
+# The dedicated namespace for the whole app. Everything else below sets
+#   metadata.namespace: media-pipeline
+# so it all lands here. Apply this FIRST:  kubectl apply -f 00-namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: media-pipeline

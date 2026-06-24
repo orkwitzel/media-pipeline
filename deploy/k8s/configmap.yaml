@@ -1,0 +1,18 @@
+# Non-sensitive shared config (the companion to secret.yaml).
+# Rule of thumb: a value belongs in a Secret only if it's a CREDENTIAL.
+# Everything here is safe to read by anyone, so it lives in a ConfigMap.
+#
+# REDIS_URL is here (not in the Secret) because Redis has no password in this
+# setup. If you add a Redis password later, move REDIS_URL into the Secret.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: media-pipeline-config
+  namespace: media-pipeline
+data:
+  REDIS_URL: redis://redis:6379/0
+  S3_ENDPOINT: minio:9000          # in-cluster Service DNS (host:port, no scheme)
+  S3_USE_SSL: "false"
+  S3_REGION: us-east-1
+  BUCKET_ORIGINALS: originals
+  BUCKET_PROCESSED: processed
