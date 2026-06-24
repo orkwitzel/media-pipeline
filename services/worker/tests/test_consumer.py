@@ -13,12 +13,22 @@ def test_handle_job_happy_path():
         set_cache=lambda jid, snap: cache.__setitem__(jid, snap),
         publish_event=lambda body: published.append(json.loads(body)),
     )
-    msg = json.dumps({"jobId": "abc", "originalKey": "originals/abc.png", "createdAt": "now"})
+    msg = json.dumps({"jobId": "abc", "originalKey": "originals/abc.png", "createdAt": "2024-01-01T00:00:00+00:00"})
     handle_job(deps, msg.encode())
 
     assert "processed/abc.png" in stored and "processed/abc_thumb.png" in stored
     assert db["abc"]["status"] == "done"
-    assert cache["abc"]["status"] == "done"
+
+    snap = cache["abc"]
+    assert snap["status"] == "done"
+    assert snap["id"] == "abc"
+    assert snap["originalKey"] == "originals/abc.png"
+    assert snap["thumbnailKey"] == "processed/abc_thumb.png"
+    assert snap["processedKey"] == "processed/abc.png"
+    assert snap["error"] is None
+    assert snap["createdAt"] == "2024-01-01T00:00:00+00:00"
+    assert snap["updatedAt"]  # non-empty RFC3339 string
+
     assert published and published[0]["status"] == "done" and published[0]["jobId"] == "abc"
 
 
@@ -36,7 +46,7 @@ def test_handle_job_failure_publishes_failed_event():
         set_cache=lambda jid, snap: cache.__setitem__(jid, snap),
         publish_event=lambda body: published.append(json.loads(body)),
     )
-    msg = json.dumps({"jobId": "xyz", "originalKey": "originals/xyz.png", "createdAt": "now"})
+    msg = json.dumps({"jobId": "xyz", "originalKey": "originals/xyz.png", "createdAt": "2024-01-01T00:00:00+00:00"})
 
     with pytest.raises(ValueError, match="processing exploded"):
         handle_job(deps, msg.encode())
@@ -45,4 +55,13 @@ def test_handle_job_failure_publishes_failed_event():
     assert published[0]["resultKeys"] is None
     assert published[0]["error"] == "processing exploded"
     assert db["xyz"]["status"] == "failed"
-    assert cache["xyz"]["status"] == "failed"
+
+    snap = cache["xyz"]
+    assert snap["status"] == "failed"
+    assert snap["id"] == "xyz"
+    assert snap["originalKey"] == "originals/xyz.png"
+    assert snap["thumbnailKey"] is None
+    assert snap["processedKey"] is None
+    assert snap["error"] == "processing exploded"
+    assert snap["createdAt"] == "2024-01-01T00:00:00+00:00"
+    assert snap["updatedAt"]  # non-empty RFC3339 string
