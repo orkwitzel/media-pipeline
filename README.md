@@ -22,7 +22,7 @@ docker compose up -d --scale worker=4 # competing consumers — watch the queue 
   `/ws`→notifier) — see [`deploy/edge.nginx.conf`](deploy/edge.nginx.conf) for exactly the
   routing/rewrite your real Ingress must do.
 - The `migrator` runs to completion (your k8s Job/initContainer) before the app services start.
-- Behind a TLS-intercepting proxy, build the worker with `PIP_TRUSTED_HOST=1 docker compose build worker`.
+- Behind a TLS-intercepting proxy, build the worker with `UV_INSECURE_HOST="pypi.org files.pythonhosted.org" docker compose build worker`.
 
 ---
 

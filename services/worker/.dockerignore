@@ -1,0 +1,16 @@
+# Python build/venv artifacts
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+
+# Tests (the image runs worker/ only)
+tests/
+
+# Docs & build metadata (not needed in the image)
+README.md
+AGENTS.md
+Dockerfile
+.dockerignore
+.git

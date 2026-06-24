@@ -36,9 +36,9 @@ Competing-consumer image processor for the media-pipeline. Reads jobs from the `
 docker build -t media-pipeline/worker .
 
 # Build behind a TLS-intercepting proxy (opt-in only, trusted networks)
-# PIP_TRUSTED_HOST=1 disables cert verification for pypi.org and files.pythonhosted.org.
+# UV_INSECURE_HOST skips cert verification for the listed hosts during uv install.
 # Use ONLY on networks you control (e.g. corporate proxy, Rancher Desktop).
-docker build --build-arg PIP_TRUSTED_HOST=1 -t media-pipeline/worker .
+docker build --build-arg UV_INSECURE_HOST="pypi.org files.pythonhosted.org" -t media-pipeline/worker .
 
 # Run (with required env vars)
 docker run --rm \
@@ -53,16 +53,18 @@ docker run --rm \
 
 ## Tests
 
+Dependencies are managed with [uv](https://docs.astral.sh/uv/). `uv sync` creates
+`.venv` and installs the runtime deps plus the `dev` group (pytest, testcontainers).
+
 ```bash
 # Unit tests (no Docker required)
 cd services/worker
-python3 -m venv .venv && . .venv/bin/activate
-pip install -e ".[dev]"
-pytest -q -m "not integration"
+uv sync                       # creates .venv with runtime + dev deps
+uv run pytest -q -m "not integration"
 
 # Integration tests (requires Docker)
 DOCKER_HOST=unix:///path/to/docker.sock TESTCONTAINERS_RYUK_DISABLED=true \
-  pytest -q -m integration
+  uv run pytest -q -m integration
 ```
 
 ## Scaling note

@@ -1,0 +1,14 @@
+# Compiled binary (built inside the image)
+migrator
+
+# Go tests (ignored by `go build`)
+*_test.go
+
+# Docs & build metadata
+README.md
+AGENTS.md
+Dockerfile
+.dockerignore
+.git
+
+# NOTE: migrations/ is embedded via go:embed — do NOT ignore it.

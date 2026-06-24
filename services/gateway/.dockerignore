@@ -1,0 +1,12 @@
+# Compiled binary (built inside the image)
+gateway
+
+# Go tests (ignored by `go build`, no need to send them)
+*_test.go
+
+# Docs & build metadata
+README.md
+AGENTS.md
+Dockerfile
+.dockerignore
+.git

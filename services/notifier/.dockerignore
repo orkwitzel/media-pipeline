@@ -1,0 +1,14 @@
+# Installed deps (reinstalled via `npm ci` in the image) and build output
+node_modules/
+dist/
+
+# Tests & test config
+test/
+vitest.config.ts
+
+# Docs & build metadata
+README.md
+AGENTS.md
+Dockerfile
+.dockerignore
+.git

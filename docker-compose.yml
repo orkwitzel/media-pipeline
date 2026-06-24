@@ -21,7 +21,7 @@
 #
 # Behind a TLS-intercepting proxy (e.g. corporate network), build the worker
 # image with the opt-in escape hatch (default build stays secure):
-#   PIP_TRUSTED_HOST=1 docker compose build worker
+#   UV_INSECURE_HOST="pypi.org files.pythonhosted.org" docker compose build worker
 
 x-s3-env: &s3-env
   S3_ENDPOINT: minio:9000
@@ -120,9 +120,9 @@ services:
     build:
       context: ./services/worker
       args:
-        # Empty by default (full TLS verification). Set PIP_TRUSTED_HOST=1 in
-        # your shell to opt into --trusted-host for proxied networks.
-        PIP_TRUSTED_HOST: ${PIP_TRUSTED_HOST:-}
+        # Empty by default (full TLS verification). Set UV_INSECURE_HOST in your
+        # shell to skip TLS verification for those hosts on proxied networks.
+        UV_INSECURE_HOST: ${UV_INSECURE_HOST:-}
     environment:
       <<: [*backends-env, *s3-env]
       HEALTH_PORT: "8081"
