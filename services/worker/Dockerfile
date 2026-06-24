@@ -1,10 +1,8 @@
 FROM python:3.12-slim AS builder
 WORKDIR /build
 COPY pyproject.toml .
-RUN pip install --no-cache-dir --upgrade pip \
-        --trusted-host pypi.org --trusted-host files.pythonhosted.org && \
-    pip install --no-cache-dir ".[dev]" \
-        --trusted-host pypi.org --trusted-host files.pythonhosted.org
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir "."
 
 FROM python:3.12-slim
 WORKDIR /app
