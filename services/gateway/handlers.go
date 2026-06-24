@@ -50,13 +50,13 @@ func (a *App) handleUpload(w http.ResponseWriter, r *http.Request) {
 	key := "originals/" + id + ext
 	ct := hdr.Header.Get("Content-Type"); if ct == "" { ct = "application/octet-stream" }
 
-	if err := a.Obj.Put(r.Context(), a.Cfg.BucketOriginals, key, ct, data); err != nil {
-		http.Error(w, "store failed", http.StatusBadGateway); return
-	}
 	now := nowUTC()
 	job := JobSnapshot{ID: id, Status: "pending", OriginalKey: key, CreatedAt: now, UpdatedAt: now}
 	if err := a.Store.Insert(r.Context(), job); err != nil {
 		http.Error(w, "db failed", http.StatusBadGateway); return
+	}
+	if err := a.Obj.Put(r.Context(), a.Cfg.BucketOriginals, key, ct, data); err != nil {
+		http.Error(w, "store failed", http.StatusBadGateway); return
 	}
 	msg, _ := json.Marshal(map[string]string{"jobId": id, "originalKey": key, "createdAt": now.Format(time.RFC3339)})
 	if err := a.Broker.PublishJob(r.Context(), msg); err != nil {
@@ -84,7 +84,8 @@ func (a *App) handleResult(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	variant := r.URL.Query().Get("variant"); if variant == "" { variant = "processed" }
 	job, err := a.Store.Get(r.Context(), id)
-	if err != nil || job == nil { http.Error(w, "not found", http.StatusNotFound); return }
+	if err != nil { http.Error(w, "db failed", http.StatusBadGateway); return }
+	if job == nil { http.Error(w, "not found", http.StatusNotFound); return }
 	var key *string
 	if variant == "thumbnail" { key = job.ThumbnailKey } else { key = job.ProcessedKey }
 	if key == nil { http.Error(w, "not ready", http.StatusNotFound); return }
