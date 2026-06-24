@@ -2,10 +2,9 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { RabbitMQContainer, type StartedRabbitMQContainer } from "@testcontainers/rabbitmq";
 import amqplib from "amqplib";
 import WebSocket from "ws";
-import http from "http";
 import { Hub } from "../src/hub.js";
 import { connectEvents, type BrokerConnection } from "../src/broker.js";
-import { createServer } from "../src/server.js";
+import { createServer, type ServerHandle } from "../src/server.js";
 
 // Skip if Docker is not available
 const DOCKER_AVAILABLE = await (async () => {
@@ -21,7 +20,7 @@ const DOCKER_AVAILABLE = await (async () => {
 describe.skipIf(!DOCKER_AVAILABLE)("notifier integration", () => {
   let rmqContainer: StartedRabbitMQContainer;
   let broker: BrokerConnection;
-  let httpServer: http.Server;
+  let serverHandle: ServerHandle;
   let port: number;
   const EXCHANGE = "events";
 
@@ -34,11 +33,11 @@ describe.skipIf(!DOCKER_AVAILABLE)("notifier integration", () => {
     let brokerRef: BrokerConnection | null = null;
 
     // Start the notifier server on a random port
-    httpServer = createServer(hub, () => brokerRef);
+    serverHandle = createServer(hub, () => brokerRef);
     await new Promise<void>((resolve) => {
-      httpServer.listen(0, resolve);
+      serverHandle.httpServer.listen(0, resolve);
     });
-    port = (httpServer.address() as any).port;
+    port = (serverHandle.httpServer.address() as any).port;
 
     // Connect broker (consumer side)
     brokerRef = await connectEvents(rabbitUrl, (event) => {
@@ -49,7 +48,10 @@ describe.skipIf(!DOCKER_AVAILABLE)("notifier integration", () => {
 
   afterAll(async () => {
     if (broker) await broker.close();
-    await new Promise<void>((resolve) => httpServer.close(() => resolve()));
+    if (serverHandle) {
+      serverHandle.wss.close();
+      await new Promise<void>((resolve) => serverHandle.httpServer.close(() => resolve()));
+    }
     if (rmqContainer) await rmqContainer.stop();
   }, 30_000);
 

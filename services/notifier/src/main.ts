@@ -10,7 +10,7 @@ async function main() {
   let broker: BrokerConnection | null = null;
   const getBroker = () => broker;
 
-  const httpServer = createServer(hub, getBroker);
+  const { httpServer, wss } = createServer(hub, getBroker);
 
   httpServer.listen(config.port, () => {
     console.log(`[notifier] listening on port ${config.port}`);
@@ -22,6 +22,7 @@ async function main() {
 
   const shutdown = async () => {
     console.log("[notifier] shutting down...");
+    wss.close();
     httpServer.close();
     if (broker) await broker.close();
     process.exit(0);

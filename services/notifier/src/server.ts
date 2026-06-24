@@ -3,10 +3,15 @@ import { WebSocketServer } from "ws";
 import type { Hub } from "./hub.js";
 import type { BrokerConnection } from "./broker.js";
 
+export interface ServerHandle {
+  httpServer: http.Server;
+  wss: WebSocketServer;
+}
+
 export function createServer(
   hub: Hub,
   getBroker: () => BrokerConnection | null
-): http.Server {
+): ServerHandle {
   const httpServer = http.createServer((req, res) => {
     if (req.url === "/healthz") {
       res.writeHead(200, { "Content-Type": "text/plain" });
@@ -49,5 +54,5 @@ export function createServer(
     });
   });
 
-  return httpServer;
+  return { httpServer, wss };
 }
