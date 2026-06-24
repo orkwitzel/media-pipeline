@@ -37,8 +37,17 @@ func Migrate(ctx context.Context, dbURL string) error {
 		if exists { log.Printf("skip %s (already applied)", name); continue }
 		sqlBytes, err := migrations.ReadFile("migrations/" + name)
 		if err != nil { return err }
-		if _, err = conn.Exec(ctx, string(sqlBytes)); err != nil { return fmt.Errorf("apply %s: %w", name, err) }
-		if _, err = conn.Exec(ctx, `INSERT INTO schema_migrations(name) VALUES($1)`, name); err != nil { return err }
+		tx, err := conn.Begin(ctx)
+		if err != nil { return fmt.Errorf("begin tx for %s: %w", name, err) }
+		if _, err = tx.Exec(ctx, string(sqlBytes)); err != nil {
+			_ = tx.Rollback(ctx)
+			return fmt.Errorf("apply %s: %w", name, err)
+		}
+		if _, err = tx.Exec(ctx, `INSERT INTO schema_migrations(name) VALUES($1)`, name); err != nil {
+			_ = tx.Rollback(ctx)
+			return fmt.Errorf("ledger insert %s: %w", name, err)
+		}
+		if err = tx.Commit(ctx); err != nil { return fmt.Errorf("commit %s: %w", name, err) }
 		log.Printf("applied %s", name)
 	}
 	return nil
