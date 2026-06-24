@@ -58,6 +58,6 @@ On failure: `status:"failed"`, `resultKeys:null`, `error:"<message>"`.
 - `GET /healthz` `GET /readyz` on the same HTTP port.
 
 ## Ingress routing contract (the user wires this in k8s)
-- `/`        → `web` (nginx, port 80)
+- `/`        → `web` (nginx, port 8080)
 - `/api/...` → `gateway` (strip `/api` prefix; e.g. `/api/upload` → gateway `/upload`)
 - `/ws`      → `notifier` (WebSocket upgrade)

@@ -1,6 +1,6 @@
 # web
 
-React + Vite SPA served by nginx on port 80.
+React + Vite SPA served by nginx on port 8080 (non-root, unprivileged nginx).
 
 The SPA uses **relative paths only** — it calls `/api/...` (gateway) and `/ws` (notifier WebSocket). No service hostnames are hardcoded; routing is the user's Ingress concern.
 
@@ -10,7 +10,7 @@ Per [`docs/contracts.md`](../../docs/contracts.md):
 
 | Path     | Routes to          |
 |----------|--------------------|
-| `/`      | `web` (this service, port 80) |
+| `/`      | `web` (this service, port 8080) |
 | `/api/…` | `gateway` (strip `/api` prefix) |
 | `/ws`    | `notifier` (WebSocket upgrade) |
 
@@ -27,7 +27,7 @@ npm run build     # TypeScript check + Vite production build → dist/
 
 ```bash
 docker build -t web .
-docker run -p 8080:80 web
+docker run -p 8080:8080 web
 ```
 
 The container does **not** proxy `/api` or `/ws` — wire those through your Ingress.
