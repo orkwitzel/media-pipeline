@@ -4,9 +4,25 @@ Async image-processing pipeline — a learning project for Kubernetes concepts.
 Upload an image; it gets resized, thumbnailed, watermarked, and stored in object storage.
 Results stream back to the browser in real time via WebSocket.
 
-App-only monorepo: five services, no compose/k8s manifests included.
+App-only monorepo: five services. **No Kubernetes manifests are included** — deploying to a
+cluster is the learning exercise. A [`docker-compose.yml`](docker-compose.yml) is provided
+**purely as a local reference** (see below); the real target is k8s.
 See [`docs/contracts.md`](docs/contracts.md) for the cross-service API contract and
 [`docs/env-reference.md`](docs/env-reference.md) for every environment variable.
+
+## Run it locally (reference)
+
+```bash
+docker compose up --build            # then open http://localhost:8080
+docker compose up -d --scale worker=4 # competing consumers — watch the queue drain
+```
+
+- RabbitMQ UI: http://localhost:15672 (`app`/`app`) · MinIO UI: http://localhost:9001 (`minioadmin`/`minioadmin`)
+- The compose **`edge`** service emulates your k8s Ingress (routes `/`→web, `/api`→gateway,
+  `/ws`→notifier) — see [`deploy/edge.nginx.conf`](deploy/edge.nginx.conf) for exactly the
+  routing/rewrite your real Ingress must do.
+- The `migrator` runs to completion (your k8s Job/initContainer) before the app services start.
+- Behind a TLS-intercepting proxy, build the worker with `PIP_TRUSTED_HOST=1 docker compose build worker`.
 
 ---
 
