@@ -1,7 +1,5 @@
 # Environment Variable Reference
 
-Common: `LOG_LEVEL` (default `info`), `SHUTDOWN_TIMEOUT_SECONDS` (default `25`).
-
 ## gateway
 | var | required | default | meaning |
 |-----|----------|---------|---------|
