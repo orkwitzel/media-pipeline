@@ -10,7 +10,7 @@ import redis as redis_lib
 from worker.clients import connect_rabbit, make_minio, make_pg, make_redis
 from worker.config import Config
 from worker.consumer import Deps, handle_job
-from worker.health import start_health_server
+from worker.health import make_readyz, start_health_server
 from worker.processing import process_image
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -83,8 +83,24 @@ def main() -> None:
 
     deps = build_deps(cfg, minio_client, pg_conn, redis_client, channel)
 
-    # Health server: readyz checks that the rabbit connection is open
-    start_health_server(cfg.health_port, is_ready=lambda: conn.is_open)
+    # Health server: readyz checks RabbitMQ, Postgres, Redis, and MinIO
+    def _ping_pg() -> None:
+        with pg_conn.cursor() as cur:
+            cur.execute("SELECT 1")
+
+    def _ping_redis() -> None:
+        redis_client.ping()
+
+    def _ping_minio() -> None:
+        minio_client.bucket_exists(cfg.bucket_originals)
+
+    is_ready = make_readyz(
+        rabbit_is_open=lambda: conn.is_open,
+        ping_pg=_ping_pg,
+        ping_redis=_ping_redis,
+        ping_minio=_ping_minio,
+    )
+    start_health_server(cfg.health_port, is_ready=is_ready)
 
     # SIGTERM handler — stop consuming cleanly
     def _handle_sigterm(signum, frame):
