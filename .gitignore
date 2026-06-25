@@ -19,3 +19,4 @@ services/worker/worker.egg-info/
 /services/gateway/gateway
 /services/migrator/migrator
 *.tsbuildinfo
+deploy/helm/charts/*.tgz

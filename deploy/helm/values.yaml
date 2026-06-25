@@ -1,6 +1,7 @@
 # prod values
-global:
-  namespace: media-pipeline
+# Namespace is managed by Helm itself: install with
+#   helm install media-pipeline ./deploy/helm -n media-pipeline --create-namespace
+# Templates reference {{ .Release.Namespace }}, so the chart is namespace-agnostic.
 
 web:
   replicas: 3
@@ -23,3 +24,9 @@ ingress:
     enabled: false
     issuer: selfsigned-issuer
     secretName: media-pipeline-ingress-tls
+
+valkey:
+  enabled: true
+  fullnameOverride: redis
+  auth:
+    enabled: false

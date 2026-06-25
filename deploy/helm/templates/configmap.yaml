@@ -8,7 +8,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: media-pipeline-config
-  namespace: media-pipeline
+  namespace: {{ .Release.Namespace }}
 data:
   REDIS_URL: redis://redis:6379/0
   S3_ENDPOINT: minio:9000          # in-cluster Service DNS (host:port, no scheme)

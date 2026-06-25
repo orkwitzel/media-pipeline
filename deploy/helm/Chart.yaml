@@ -1,6 +1,11 @@
 apiVersion: v2
 name: media-pipeline
 description: A Helm chart for Kubernetes
+dependencies:
+  - name: valkey
+    version: "0.10.0"
+    repository: "https://valkey.io/valkey-helm/"
+    condition: valkey.enabled
 
 # A chart can be either an 'application' or a 'library' chart.
 #
