@@ -2,11 +2,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: notifier
-  namespace: media-pipeline
+  namespace: {{ .Values.global.namespace }}
   labels:
     app: notifier
 spec:
-  replicas: 3
+  replicas: {{ .Values.notifier.replicas }}
   selector:
     matchLabels:
       app: notifier

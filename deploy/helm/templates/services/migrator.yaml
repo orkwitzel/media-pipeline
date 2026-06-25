@@ -2,7 +2,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: migrator
-  namespace: media-pipeline
+  namespace: {{ .Values.global.namespace }}
   labels:
     app: migrator
 spec:

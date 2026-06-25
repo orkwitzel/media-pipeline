@@ -1,0 +1,25 @@
+# prod values
+global:
+  namespace: media-pipeline
+
+web:
+  replicas: 3
+
+gateway:
+  replicas: 3
+
+worker:
+  replicas: 3
+
+notifier:
+  replicas: 3
+
+migrator:
+  replicas: 1
+
+ingress:
+  origin: media-pipeline.example.com
+  tls:
+    enabled: false
+    issuer: selfsigned-issuer
+    secretName: media-pipeline-ingress-tls

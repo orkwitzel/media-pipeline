@@ -1,23 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: gateway
-  namespace: media-pipeline
+  name: worker
+  namespace: {{ .Values.global.namespace }}
   labels:
-    app: gateway
+    app: worker
 spec:
-  replicas: 3
+  replicas: {{ .Values.worker.replicas }}
   selector:
     matchLabels:
-      app: gateway
+      app: worker
   template:
     metadata:
       labels:
-        app: gateway
+        app: worker
     spec:
       containers:
-        - name: gateway
-          image: media-pipeline/gateway
+        - name: worker
+          image: media-pipeline/worker
           imagePullPolicy: IfNotPresent
           env:
             - name: DATABASE_URL
@@ -50,16 +50,28 @@ spec:
                 secretKeyRef:
                   name: minio-secrets
                   key: password
+            - name: S3_USE_SSL
+              valueFrom:
+                configMapKeyRef:
+                  name: media-pipeline-config
+                  key: S3_USE_SSL
+            - name: S3_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: media-pipeline-config
+                  key: S3_REGION
           readinessProbe:
             httpGet:
               path: /readyz
-              port: 8080
+              port: 8081
             initialDelaySeconds: 15
             periodSeconds: 10
           livenessProbe:
             httpGet:
               path: /healthz
-              port: 8080
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 10
           resources:
             requests:
               cpu: 100m
@@ -67,17 +79,3 @@ spec:
             limits:
               cpu: 500m
               memory: 500Mi
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: gateway
-  namespace: media-pipeline
-spec:
-  ports:
-    - port: 8080
-      targetPort: 8080
-  selector:
-    app: gateway
-  type: ClusterIP

@@ -2,11 +2,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: web
-  namespace: media-pipeline
+  namespace: {{ .Values.global.namespace }}
   labels:
     app: web
 spec:
-  replicas: 3
+  replicas: {{ .Values.web.replicas }}
   selector:
     matchLabels:
       app: web
