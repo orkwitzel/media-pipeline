@@ -30,3 +30,17 @@ valkey:
   fullnameOverride: redis
   auth:
     enabled: false
+
+postgres:
+  replicas: 3
+  username: app
+  password: app
+  size: 2Gi
+  storageClass: ""
+
+rabbitmq:
+  username: app
+  password: app
+  size: 2Gi
+  storageClass: ""
+  replicas: 1

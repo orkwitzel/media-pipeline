@@ -1,72 +1,28 @@
-apiVersion: apps/v1
-kind: StatefulSet
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
 metadata:
   name: postgres
   namespace: {{ .Release.Namespace }}
-  labels:
-    app: postgres
 spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: postgres
-  serviceName: postgres
-  template:
-    metadata:
-      labels:
-        app: postgres
-    spec:
-      containers:
-        - name: postgres
-          image: postgres:16-alpine
-          ports:
-            - containerPort: 5432
-          env:
-            - name: POSTGRES_USER
-              valueFrom:
-                secretKeyRef:
-                  name: database-secrets
-                  key: username
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: database-secrets
-                  key: password
-            - name: POSTGRES_DB
-              valueFrom:
-                secretKeyRef:
-                  name: database-secrets
-                  key: db
-          volumeMounts:
-            - name: postgres-data
-              mountPath: /var/lib/postgresql/data
-          readinessProbe:
-            exec:
-              command: ["pg_isready", "-U", "app", "-d", "app"]
-            initialDelaySeconds: 15
-            periodSeconds: 10
-          livenessProbe:
-            exec:
-              command: ["pg_isready", "-U", "app", "-d", "app"]
-            initialDelaySeconds: 30
-  volumeClaimTemplates:
-    - metadata:
-        name: postgres-data
-      spec:
-        accessModes: ["ReadWriteOnce"]
-        resources:
-          requests:
-            storage: 2Gi
-
+  instances: {{ .Values.postgres.replicas }}
+  bootstrap:
+    initdb:
+      database: app
+      owner: {{ .Values.postgres.username }}
+      secret: 
+        name: postgres-auth-secret
+  storage:
+    size: {{ .Values.postgres.size }}
+    {{- with .Values.postgres.storageClass }}
+    storageClass: {{ . }}
+    {{- end }}
 ---
 apiVersion: v1
-kind: Service
+kind: Secret
 metadata:
-  name: postgres
+  name: postgres-auth-secret
   namespace: {{ .Release.Namespace }}
-spec:
-  ports:
-    - port: 5432
-      targetPort: 5432
-  selector:
-    app: postgres
+type: kubernetes.io/basic-auth
+stringData:
+  username: {{ .Values.postgres.username }}
+  password: {{ .Values.postgres.password }}

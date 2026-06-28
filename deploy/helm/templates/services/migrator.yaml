@@ -5,6 +5,9 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     app: migrator
+  annotations:
+    "helm.sh/hook": post-install, post-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation
 spec:
   backoffLimit: 4
   template:
@@ -29,4 +32,4 @@ spec:
           command:
             - sh
             - -c
-            - 'until pg_isready -h postgres -p 5432 -U app; do echo "waiting for postgres..."; sleep 2; done'
+            - 'until pg_isready -h postgres-rw -p 5432 -U {{ .Values.postgres.username }}; do echo "waiting for postgres..."; sleep 2; done'

@@ -16,7 +16,7 @@ repo* by extending `deploy/k8s/`.
 - `DONE` — implemented and understood
 - `SKIP` — consciously deprioritized (note why)
 
-**Last updated:** 2026-06-25
+**Last updated:** 2026-06-28
 
 ---
 
@@ -47,7 +47,7 @@ Ordered by learning leverage. Tier 1 first — it pulls in most of the rest.
 
 ### Tier 1 — Helm
 
-**Status:** `TODO`
+**Status:** `IN PROGRESS`
 
 **Why:** The single biggest gap. The entire project is hand-applied YAML
 (`kubectl apply -f`). Real clusters are delivered via Helm. Converting this repo
@@ -70,15 +70,54 @@ into one chart forces you through almost everything a production chart is built 
   delete policy.
 
 **What we need to do:**
-- [ ] Convert `deploy/k8s/` manifests into a Helm chart (`Chart.yaml`, `values.yaml`,
-      `templates/`).
-- [ ] Write a `_helpers.tpl` with a `fullname` and a shared labels template.
-- [ ] Replace the hand-written Postgres/RabbitMQ/Redis/MinIO manifests with
-      **Bitnami sub-chart dependencies** in `Chart.yaml` (mirrors how the JFrog
-      umbrella pulls in `postgresql`/`rabbitmq`).
-- [ ] Turn the migrator Job into a `pre-install`/`pre-upgrade` **hook** with a
-      `hook-succeeded` delete policy.
-- [ ] Parameterize replicas, image tags, and resource limits through `values.yaml`.
+- [x] Convert `deploy/k8s/` manifests into a Helm chart (`Chart.yaml`, `values.yaml`,
+      `templates/`). *(done — chart at `deploy/helm/`, renders namespace-agnostic via
+      `.Release.Namespace`)*
+- [x] Write a `_helpers.tpl` with a `fullname` and a shared labels template. *(done)*
+- [~] Replace the hand-written Postgres/RabbitMQ/Redis/MinIO manifests with sub-chart
+      dependencies / operators (mirrors how the JFrog umbrella pulls in
+      `postgresql`/`rabbitmq`). **Bitnami is now paywalled (2025)** — using free
+      alternatives instead:
+  - [x] Redis → **Valkey** sub-chart dependency (Service pinned to `redis`).
+  - [x] Postgres → **CloudNativePG** operator (`Cluster` CR; `postgres-rw`/`-ro`/`-r`
+        Services; enables read replicas).
+  - [ ] RabbitMQ → **RabbitMQ Cluster Operator** (`RabbitmqCluster` CR) — still a
+        hand-rolled StatefulSet.
+  - [ ] MinIO → dependency/operator — still a hand-rolled StatefulSet.
+- [x] Turn the migrator Job into a `post-install`/`post-upgrade` **hook** with a
+      `before-hook-creation` delete policy. *(done — `post-` not `pre-` because the DB
+      is created by this same chart, so a pre-hook would deadlock on first install)*
+- [~] Parameterize replicas, image tags, and resource limits through `values.yaml`.
+      *(replicas done; image tags + resource limits still hardcoded in templates)*
+
+---
+
+### Tier 1.5 — Release orchestration (operators + Helm)
+
+**Status:** `TODO`
+
+**Why:** Operators (CNPG, RabbitMQ, ingress-nginx, cert-manager) are installed as
+**separate releases** from the app chart — an app chart ships only the CR *instances*,
+never the CRD/controller, because the CRD must exist before the chart renders. That
+creates a hard ordering requirement (platform layer before app layer). Right now that
+ordering is enforced by hand. The next rung is to make it **declarative**.
+
+**The layering (already in place):**
+- Platform layer — operators: CRDs + controllers, installed once cluster-wide, own
+  lifecycle, own namespace (`cnpg-system`, `rabbitmq-system`, …). The *instances* they
+  manage (Postgres pods, RabbitMQ broker) still run in `media-pipeline`.
+- App layer — this Helm release: ships only CRs (`Cluster`, `RabbitmqCluster`,
+  `Ingress`) + the app Deployments.
+
+**What we need to do:**
+- [ ] Write a `helmfile.yaml` declaring every release (each operator + the app chart)
+      with explicit `needs:` ordering, e.g. `media-pipeline` `needs: [cnpg-operator,
+      rabbitmq-operator]`. One `helmfile apply` then installs them in dependency order.
+- [ ] (Optional) Harden the manual path first with a `Makefile`/script that encodes the
+      install order, so the ordering is visible before abstracting it away.
+- [ ] Note the CRD-upgrade gotcha: Helm's `crds/` dir never upgrades CRDs. Teams that
+      want CRDs Helm-managed split them into a separate CRD-only chart installed early.
+      (Not needed here — operator installers ship their own CRDs.)
 
 ---
 
@@ -198,7 +237,10 @@ httpGet with `failureThreshold: 90`, `periodSeconds: 5`.
 
 #### 4b. Config-checksum rolling restarts
 
-**Status:** `TODO`
+**Status:** `TODO` — *but already bitten by this twice: swapping Redis→Valkey and
+Postgres→CNPG changed the Secret/Service but did NOT restart gateway/worker, which
+held stale `DATABASE_URL` + stale resolved IPs and 503'd until a manual
+`kubectl rollout restart`. This item is the permanent fix.*
 
 **Why:** Right now, editing a ConfigMap/Secret does **not** restart the pods that
 consume it. A checksum annotation fixes that.
@@ -279,6 +321,25 @@ metrics-exporter sidecar.
 
 ---
 
+### Tier 7 — GitOps (Argo CD / Flux)
+
+**Status:** `TODO`
+
+**Why:** The production-standard way to coordinate many operators + app releases. A
+controller in the cluster continuously syncs releases from git, enforces the
+platform-before-app ordering automatically, and corrects drift. This is the heavyweight
+big brother of Tier 1.5's Helmfile — a genuinely separate learning track (parallel to
+Tier 5 observability), not something to copy from the JFrog chart.
+
+**What we need to do:**
+- [ ] Pick one (Argo CD or Flux) and install it in the cluster.
+- [ ] Express the platform-before-app ordering with the tool's primitive:
+      Argo CD **sync waves** + app-of-apps, or Flux `HelmRelease` `dependsOn:`.
+- [ ] Point it at this repo so a git push reconciles the cluster (and watch it correct
+      a manually-deleted resource — the drift-correction payoff).
+
+---
+
 ## Explicitly NOT in the JFrog chart (don't expect to learn these from it)
 
 So you don't over-claim what the chart demonstrates:
@@ -293,13 +354,17 @@ So you don't over-claim what the chart demonstrates:
 
 ## Recommended order
 
-1. **Tier 1 (Helm)** — Helm-ify the repo with Bitnami sub-charts + migrator-as-hook.
+1. **Tier 1 (Helm)** — Helm-ify the repo with sub-charts/operators + migrator-as-hook.
    This naturally pulls in ~60% of everything below.
-2. **Tier 2** — security & resilience hygiene (small additions per workload).
-3. **Tier 3** — scheduling (best on a multi-node cluster).
-4. **Tier 4** — operational refinements.
-5. **Tier 5** — observability (the big independent track).
-6. **Tier 6** — namespace governance.
+2. **Tier 1.5** — release orchestration (Helmfile): make the operator-before-app
+   ordering declarative. The natural next rung straight off Tier 1.
+3. **Tier 2** — security & resilience hygiene (small additions per workload).
+4. **Tier 3** — scheduling (best on a multi-node cluster).
+5. **Tier 4** — operational refinements.
+6. **Tier 5** — observability (the big independent track).
+7. **Tier 6** — namespace governance.
+8. **Tier 7** — GitOps (Argo CD / Flux): the production-grade successor to Tier 1.5;
+   its own track, can run in parallel with Tier 5.
 
 **Project constraint reminder:** the app and manifests are the learning artifact —
 the *cluster wiring is done by hand by you* to learn k8s configuration. Keep dev-only

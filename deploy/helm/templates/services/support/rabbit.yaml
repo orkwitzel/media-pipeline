@@ -1,74 +1,12 @@
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  name: rabbitmq
-  namespace: {{ .Release.Namespace }}
-  labels:
-    app: rabbitmq
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: rabbitmq
-  serviceName: rabbitmq
-  template:
-    metadata:
-      labels:
-        app: rabbitmq
-    spec:
-      containers:
-        - name: rabbitmq
-          image: rabbitmq:3.11.0-management
-          ports:
-            - name: amqp
-              containerPort: 5672
-            - name: management
-              containerPort: 15672
-          env:
-            - name: RABBITMQ_DEFAULT_USER
-              valueFrom:
-                secretKeyRef:
-                  name: rabbitmq-secrets
-                  key: username
-            - name: RABBITMQ_DEFAULT_PASS
-              valueFrom:
-                secretKeyRef:
-                  name: rabbitmq-secrets
-                  key: password
-          volumeMounts:
-            - name: rabbitmq-data
-              mountPath: /var/lib/rabbitmq
-          readinessProbe:
-            exec:
-              command: ["rabbitmq-diagnostics", "check_port_connectivity"]
-            initialDelaySeconds: 15
-            periodSeconds: 10
-          livenessProbe:
-            exec:
-              command: ["rabbitmq-diagnostics", "ping"]
-            initialDelaySeconds: 30
-            periodSeconds: 20
-  volumeClaimTemplates:
-    - metadata:
-        name: rabbitmq-data
-      spec:
-        accessModes: ["ReadWriteOnce"]
-        resources:
-          requests:
-            storage: 2Gi
----
-apiVersion: v1
-kind: Service
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
 metadata:
   name: rabbitmq
   namespace: {{ .Release.Namespace }}
 spec:
-  ports:
-    - name: amqp
-      port: 5672
-      targetPort: 5672
-    - name: management
-      port: 15672
-      targetPort: 15672
-  selector:
-    app: rabbitmq
+  replicas: {{ .Values.rabbitmq.replicas }}
+  persistence:
+    storage: {{ .Values.rabbitmq.size }}
+    {{- with .Values.rabbitmq.storageClass }}
+    storageClassName: {{ . }}
+    {{- end }}
