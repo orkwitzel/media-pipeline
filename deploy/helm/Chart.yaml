@@ -6,6 +6,10 @@ dependencies:
     version: "0.10.0"
     repository: "https://valkey.io/valkey-helm/"
     condition: valkey.enabled
+  - name: minio
+    version: "5.x.x"
+    repository: "https://charts.min.io/"
+    condition: minio.enabled
 
 # A chart can be either an 'application' or a 'library' chart.
 #

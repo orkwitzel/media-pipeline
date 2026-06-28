@@ -2,5 +2,8 @@ dependencies:
 - name: valkey
   repository: https://valkey.io/valkey-helm/
   version: 0.10.0
-digest: sha256:81d70fb9cd73140c14a3ed25911897dd5f56f300c8b4550d6ea3b815fcdd25e4
-generated: "2026-06-25T14:28:16.543413+03:00"
+- name: minio
+  repository: https://charts.min.io/
+  version: 5.4.0
+digest: sha256:73c28ebdc8a495089756c01d21c7f3f141c949f2d9d1082ff86197a83ca509a4
+generated: "2026-06-28T12:15:35.742536+03:00"

@@ -81,9 +81,20 @@ into one chart forces you through almost everything a production chart is built 
   - [x] Redis → **Valkey** sub-chart dependency (Service pinned to `redis`).
   - [x] Postgres → **CloudNativePG** operator (`Cluster` CR; `postgres-rw`/`-ro`/`-r`
         Services; enables read replicas).
-  - [ ] RabbitMQ → **RabbitMQ Cluster Operator** (`RabbitmqCluster` CR) — still a
-        hand-rolled StatefulSet.
-  - [ ] MinIO → dependency/operator — still a hand-rolled StatefulSet.
+  - [x] RabbitMQ → **RabbitMQ Cluster Operator** (`RabbitmqCluster` CR). Operator
+        installed cluster-wide (`rabbitmq-system`); chart ships the CR + a pre-created
+        `rabbitmq-default-user` Secret so the operator adopts known `app/app` creds
+        instead of generating random ones. Both that Secret and the app-facing
+        `rabbitmq-secrets.url` derive from `.Values.rabbitmq.*` (single source of truth).
+  - [~] MinIO → **official MinIO Helm chart** as a sub-chart dependency (Valkey pattern,
+        not operator — operator is built for distributed/erasure-coded multi-node; we're
+        single-node). Chart edits DONE and render-verified: `mode: standalone`,
+        `fullnameOverride: minio` (keeps `S3_ENDPOINT=minio:9000`), creds single-sourced
+        from `.Values.minio.*`, `resources.requests.memory` overridden off the 16Gi
+        default, old `minio.yaml` deleted. **Cutover NOT yet applied** — cluster still
+        runs the old StatefulSet (rev 8); next `helm upgrade` triggers the migration.
+        (MinIO has no DB-style read replica: standalone is single-instance; read-scaling
+        for immutable objects = a cache in front, or distributed mode on ≥4 nodes.)
 - [x] Turn the migrator Job into a `post-install`/`post-upgrade` **hook** with a
       `before-hook-creation` delete policy. *(done — `post-` not `pre-` because the DB
       is created by this same chart, so a pre-hook would deadlock on first install)*

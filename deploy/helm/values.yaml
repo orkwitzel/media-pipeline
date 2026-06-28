@@ -44,3 +44,18 @@ rabbitmq:
   size: 2Gi
   storageClass: ""
   replicas: 1
+
+minio:
+  enabled: true
+  mode: standalone          # override the distributed/replicas:16 default
+  replicas: 3
+  fullnameOverride: minio   # Service stays "minio" → S3_ENDPOINT=minio:9000 keeps working
+  rootUser: minioadmin
+  rootPassword: minioadmin  # dev placeholder, >= 8 chars
+  persistence:
+    enabled: true
+    size: 2Gi
+  resources:
+    requests:
+      memory: 256Mi         # override the 16Gi default
+  buckets: []               # worker creates originals/processed itself
